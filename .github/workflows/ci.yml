@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finance_tracker_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d finance_tracker_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SECRET_KEY_BASE: ci-secret-key-base-that-is-at-least-sixty-four-characters-long
+      RAILS_ENV: test
+      TEST_DATABASE_PATH: /tmp/finance_tracker_test.sqlite3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.4
+          bundler-cache: true
+      - run: bundle exec rails db:prepare
+      - run: bundle exec rails test
+      - run: bundle exec rails zeitwerk:check
+      - run: bundle exec rails assets:precompile
+      - run: bundle exec brakeman --no-pager --quiet --exit-on-warn --exit-on-error
+      - run: bundle exec bundle-audit check --update
+      - name: Verify production PostgreSQL migrations
+        env:
+          RAILS_ENV: production
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/finance_tracker_ci
+          FORCE_SSL: "false"
+        run: bundle exec rails db:migrate
+      - run: docker build --tag finance-tracker:ci .

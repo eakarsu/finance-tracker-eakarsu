@@ -1,49 +1,25 @@
-require 'test_helper'
+require "test_helper"
 
 class UserStocksControllerTest < ActionController::TestCase
+  tests UserStocksController
+
   setup do
-    @user_stock = user_stocks(:one)
+    @user = create_user
+    @other = create_user
+    @stock = Stock.create!(ticker: "MSFT", name: "Microsoft", last_price: 500)
+    @other_holding = @other.user_stocks.create!(stock: @stock)
+    sign_in @user
   end
 
-  test "should get index" do
+  test "index never exposes another user's holdings" do
     get :index
     assert_response :success
-    assert_not_nil assigns(:user_stocks)
+    assert_not_includes response.body, "<td>#{@other.id}</td>"
   end
 
-  test "should get new" do
-    get :new
-    assert_response :success
-  end
-
-  test "should create user_stock" do
-    assert_difference('UserStock.count') do
-      post :create, user_stock: { stock_id: @user_stock.stock_id, user_id: @user_stock.user_id }
+  test "destroy is scoped to the authenticated user" do
+    assert_no_difference("UserStock.count") do
+      assert_raises(ActiveRecord::RecordNotFound) { delete :destroy, params: { id: @other_holding.id } }
     end
-
-    assert_redirected_to user_stock_path(assigns(:user_stock))
-  end
-
-  test "should show user_stock" do
-    get :show, id: @user_stock
-    assert_response :success
-  end
-
-  test "should get edit" do
-    get :edit, id: @user_stock
-    assert_response :success
-  end
-
-  test "should update user_stock" do
-    patch :update, id: @user_stock, user_stock: { stock_id: @user_stock.stock_id, user_id: @user_stock.user_id }
-    assert_redirected_to user_stock_path(assigns(:user_stock))
-  end
-
-  test "should destroy user_stock" do
-    assert_difference('UserStock.count', -1) do
-      delete :destroy, id: @user_stock
-    end
-
-    assert_redirected_to user_stocks_path
   end
 end

@@ -1,0 +1,70 @@
+<h1>Paper Trading Control Room</h1>
+<p class="alert alert-danger"><strong>No live orders:</strong> this workflow is simulation-only and has no brokerage execution capability.</p>
+
+<div class="grid">
+  <div class="risk-panel"><div class="muted">Simulated cash</div><div class="metric"><%= number_to_currency(@account.cash_balance) %></div></div>
+  <div class="risk-panel"><div class="muted">Gross exposure</div><div class="metric"><%= number_to_currency(@gross_exposure) %></div></div>
+  <div class="risk-panel"><div class="muted">Kill switch</div><div class="metric"><%= @policy.kill_switch? ? "ACTIVE" : "OFF" %></div><small><%= @policy.kill_switch_reason %></small></div>
+  <div class="risk-panel"><div class="muted">Custody boundary</div><div class="metric"><%= @account.custody_boundary.humanize %></div></div>
+</div>
+
+<% if current_user.approver? || current_user.operator? %>
+  <div class="panel">
+    <h2>Independent approval queue</h2>
+    <table><tr><th>Account</th><th>Order</th><th>Symbol</th><th>Notional input</th><th>Action</th></tr>
+      <% @approval_queue.each do |order| %><tr><td><%= order.paper_account.name %></td><td><code><%= order.client_order_id %></code></td><td><%= order.symbol %></td><td><%= order.quantity %> × <%= order.limit_price || order.market_data_snapshot.last %></td><td><%= button_to "Re-evaluate and approve", approve_paper_order_path(order), method: :patch, class: "btn btn-success" %></td></tr><% end %>
+    </table>
+  </div>
+<% end %>
+
+<div class="panel">
+  <h2>Deterministic risk policy</h2>
+  <table><tr><th>Max order</th><th>Gross limit</th><th>Daily loss</th><th>Min volume</th><th>Max spread</th><th>Stale after</th><th>Approval threshold</th></tr>
+    <tr><td><%= number_to_currency(@policy.max_order_notional) %></td><td><%= number_to_currency(@policy.max_gross_exposure) %></td><td><%= number_to_currency(@policy.max_daily_loss) %></td><td><%= number_with_delimiter(@policy.minimum_daily_volume) %></td><td><%= @policy.max_spread_bps %> bps</td><td><%= @policy.stale_after_seconds %>s</td><td><%= number_to_currency(@policy.approval_notional) %></td></tr>
+  </table>
+  <% if current_user.operator? %>
+    <%= form_with url: kill_switch_paper_trading_path, method: :patch, local: true do |form| %>
+      <%= hidden_field_tag :active, (!@policy.kill_switch?).to_s %>
+      <%= label_tag :reason, "Required operator reason" %><%= text_field_tag :reason, nil, required: true, class: "form-control" %>
+      <%= form.submit(@policy.kill_switch? ? "Release kill switch" : "Activate kill switch", class: @policy.kill_switch? ? "btn btn-success" : "btn btn-danger") %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h2>Submit a paper order</h2>
+  <% if @snapshots.empty? %><p>No licensed market snapshots have been ingested. An operator must ingest a provider record before orders can be evaluated.</p><% else %>
+    <%= form_with scope: :paper_order, url: paper_trading_path, local: true do |form| %>
+      <%= form.label :client_order_id, "Idempotency key" %><%= form.text_field :client_order_id, value: SecureRandom.uuid, required: true, class: "form-control" %>
+      <%= form.label :market_data_snapshot_id %><%= form.select :market_data_snapshot_id, @snapshots.map { |snapshot| ["#{snapshot.symbol} · #{snapshot.last} · source #{snapshot.source_timestamp.iso8601}", snapshot.id] }, {}, class: "form-control" %>
+      <%= form.label :side %><%= form.select :side, [["Buy", "buy"], ["Sell", "sell"]], {}, class: "form-control" %>
+      <%= form.label :order_type %><%= form.select :order_type, [["Limit", "limit"], ["Market", "market"]], {}, class: "form-control" %>
+      <%= form.label :quantity %><%= form.number_field :quantity, min: 0.00000001, step: 0.00000001, required: true, class: "form-control" %>
+      <%= form.label :limit_price %><%= form.number_field :limit_price, min: 0.00000001, step: 0.00000001, class: "form-control" %>
+      <%= form.submit "Evaluate and submit paper order", class: "btn btn-primary" %>
+    <% end %>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h2>Orders</h2>
+  <table><tr><th>ID</th><th>Symbol</th><th>Side</th><th>Qty / Filled</th><th>Status</th><th>Source time</th><th>Decision evidence</th><th>Actions</th></tr>
+    <% @orders.each do |order| %><tr>
+      <td><code><%= order.client_order_id %></code></td><td><%= order.symbol %></td><td><%= order.side %></td><td><%= order.quantity %> / <%= order.filled_quantity %></td>
+      <td class="status-<%= order.status %>"><%= order.status.humanize %></td><td><%= order.market_data_snapshot.source_timestamp.iso8601 %></td>
+      <td><%= order.decision_reasons.join(", ").presence || "all limits passed" %></td>
+      <td>
+        <% if order.status == "pending_approval" && (current_user.approver? || current_user.operator?) %><%= button_to "Approve", approve_paper_order_path(order), method: :patch, class: "btn btn-success" %><% end %>
+        <% unless order.terminal? %><%= button_to "Cancel", cancel_paper_order_path(order), method: :patch, class: "btn btn-default" %><% end %>
+      </td>
+    </tr><% end %>
+  </table>
+</div>
+
+<div class="ledger-panel">
+  <h2>Immutable ledger</h2>
+  <%= link_to "Export audit CSV", audit_export_paper_trading_path, class: "btn btn-primary" %>
+  <table><tr><th>Effective</th><th>External ID</th><th>Event</th><th>Source</th><th>Hash</th><th>Entries</th></tr>
+    <% @ledger_transactions.each do |transaction| %><tr><td><%= transaction.effective_at.iso8601 %></td><td><code><%= transaction.external_id %></code></td><td><%= transaction.event_type %></td><td><%= transaction.source %></td><td><code><%= transaction.event_hash.first(12) %>…</code></td><td><%= transaction.ledger_entries.map { |entry| "#{entry.ledger_account.code} #{entry.amount}" }.join("; ") %></td></tr><% end %>
+  </table>
+</div>

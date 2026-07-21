@@ -1,16 +1,36 @@
-/*
- * This is a manifest file that'll be compiled into application.css, which will include all the files
- * listed below.
- *
- * Any CSS and SCSS file within this directory, lib/assets/stylesheets, vendor/assets/stylesheets,
- * or any plugin's vendor/assets/stylesheets directory can be referenced here using a relative path.
- *
- * You're free to add application-wide styles to this file and they'll appear at the bottom of the
- * compiled file so the styles you add here take precedence over styles defined in any styles
- * defined in the other CSS/SCSS files in this directory. It is generally better to create a new
- * file per style scope.
- *
- *= require devise_bootstrap_views
- *= require_tree .
- *= require_self
- */
+/* Finance Tracker production stylesheet (no runtime CDN dependencies). */
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4f7fb; color: #172033; font: 15px/1.5 system-ui, -apple-system, sans-serif; }
+a { color: #1456a0; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+.row { display: block; }
+.col-lg-9 { width: 100%; }
+.navbar { background: #10243e; color: white; padding: 12px 0; margin-bottom: 24px; }
+.navbar a { color: white; }
+.navbar-brand { font-size: 20px; font-weight: 700; }
+.nav { display: flex; gap: 14px; align-items: center; list-style: none; padding: 0; margin: 0; }
+.navbar-header, .navbar-collapse { display: inline-block; vertical-align: middle; }
+.navbar-collapse { float: right; }
+.navbar::after { content: ""; display: block; clear: both; }
+.panel, .well, .risk-panel, .ledger-panel { background: white; border: 1px solid #dbe3ee; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(23,32,51,.05); }
+.btn { display: inline-block; border: 0; border-radius: 6px; padding: 9px 14px; cursor: pointer; font: inherit; }
+.btn-primary, .btn-success { background: #1769aa; color: white; }
+.btn-danger { background: #b3261e; color: white; }
+.btn-default { background: #e8eef6; color: #172033; }
+.form-control { width: 100%; border: 1px solid #aebbc9; border-radius: 6px; padding: 9px 10px; margin: 4px 0 12px; }
+table { width: 100%; border-collapse: collapse; background: white; }
+th, td { padding: 10px; border-bottom: 1px solid #e3e9f1; text-align: left; }
+th { background: #eef3f9; }
+.alert { border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+.alert-success { background: #ddf4e5; color: #155e32; }
+.alert-danger { background: #fde3e1; color: #8c1d18; }
+.status-approved, .status-filled { color: #157347; font-weight: 700; }
+.status-rejected, .status-failed { color: #b3261e; font-weight: 700; }
+.status-partially_filled, .status-pending_approval { color: #8a5a00; font-weight: 700; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.metric { font-size: 28px; font-weight: 700; }
+.muted { color: #65758b; }
+code { overflow-wrap: anywhere; }
+footer { margin: 32px 0; color: #65758b; }
+@media (max-width: 700px) { .navbar-collapse { float: none; display: block; margin-top: 10px; } .nav { flex-wrap: wrap; } }

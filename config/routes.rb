@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  get "/health", to: "health#show"
+  post "/api/auth/login", to: "api/auth#login"
+  get "/api/auth/me", to: "api/auth#me"
 
   devise_for :users, :controllers => { :registrations => "user/registrations" }
   resources :user_stocks, except: [:show, :edit, :update]
@@ -11,6 +14,20 @@ Rails.application.routes.draw do
   get 'my_portfolio', to: 'users#my_portfolio'
   get 'search_stocks', to: 'stocks#search'
   get 'my_friends', to: 'users#my_friends'
+  resource :paper_trading, only: [:show, :create], controller: :paper_trading do
+    get :audit_export
+    patch :kill_switch
+  end
+  patch "paper_trading/orders/:id/approve", to: "paper_trading#approve", as: :approve_paper_order
+  patch "paper_trading/orders/:id/cancel", to: "paper_trading#cancel", as: :cancel_paper_order
+
+  namespace :api do
+    namespace :v1 do
+      resources :market_data, only: :create
+      resources :paper_fills, only: :create
+      resources :reconciliations, only: :create
+    end
+  end
 
   resources :users, only: [:show]
   resources :friendships

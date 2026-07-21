@@ -9,6 +9,9 @@ class User < ActiveRecord::Base
 
   has_many :friendships
   has_many :friends, through: :friendships
+  has_one :paper_account, dependent: :restrict_with_error
+
+  enum :risk_role, { member: "member", approver: "approver", operator: "operator" }, validate: true
 
   def can_add_stock?(ticker_symbol)
     under_stock_limit? && !stock_already_added?(ticker_symbol)
@@ -45,19 +48,15 @@ class User < ActiveRecord::Base
   end
 
   def self.first_name_matches(param)
-    matches('first_name', param)
+    where("LOWER(first_name) LIKE ?", "%#{param}%")
   end
 
   def self.last_name_matches(param)
-    matches('last_name', param)
+    where("LOWER(last_name) LIKE ?", "%#{param}%")
   end
 
   def self.email_matches(param)
-    matches('email', param)
-  end
-
-  def self.matches(field_name, param)
-    where("lower(#{field_name}) like ?", "%#{param}%")
+    where("LOWER(email) LIKE ?", "%#{param}%")
   end
 
 

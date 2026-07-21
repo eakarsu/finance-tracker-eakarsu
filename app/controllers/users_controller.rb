@@ -20,9 +20,9 @@ class UsersController < ApplicationController
   end
 
   def add_friend
-   @friend = User.find(params[:friend])
-    current_user.friendships.build(friend_id: @friend.id)
-    if current_user.save
+    @friend = User.find(params[:friend])
+    friendship = current_user.friendships.build(friend_id: @friend.id)
+    if friendship.save
       redirect_to my_friends_path, notice: "Friend was successfully added."
     else
      redirect_to my_friends_path, flash[:error] = "There was an error with adding user as friend."
@@ -31,6 +31,7 @@ class UsersController < ApplicationController
 
   def show
     @user = User.find(params[:id])
+    return head :forbidden unless @user == current_user || !current_user.not_friends_with?(@user.id)
     @user_stocks = @user.stocks
   end
 end
