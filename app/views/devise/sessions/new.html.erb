@@ -20,8 +20,33 @@
           </label>
         </div>
         <% end %>
-      <%= f.submit  t('.sign_in', :default => "Sign in"), class: "btn btn-primary" %>
+      <button type="button" id="auto-fill-demo-credentials" class="btn btn-default">Auto Fill Demo Credentials</button>
+      <%= f.submit "Sign In", class: "btn btn-primary" %>
     <% end %>
+    <div id="demo-credentials-error" class="alert alert-danger" role="alert" hidden></div>
   </div>
 </div>
 <%= render "devise/shared/links" %>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var button = document.getElementById("auto-fill-demo-credentials");
+    var error = document.getElementById("demo-credentials-error");
+    if (!button) return;
+    button.addEventListener("click", async function () {
+      button.disabled = true;
+      error.hidden = true;
+      try {
+        var response = await fetch("/api/auth/demo-credentials", { cache: "no-store", credentials: "same-origin" });
+        var payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Demo credentials unavailable");
+        document.getElementById("user_email").value = payload.email;
+        document.getElementById("user_password").value = payload.password;
+      } catch (reason) {
+        error.textContent = reason.message || "Demo credentials unavailable";
+        error.hidden = false;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+</script>

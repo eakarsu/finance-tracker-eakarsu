@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   get "/health", to: "health#show"
   post "/api/auth/login", to: "api/auth#login"
+  get "/api/auth/demo-credentials", to: "api/auth#demo_credentials"
   get "/api/auth/me", to: "api/auth#me"
 
   devise_for :users, :controllers => { :registrations => "user/registrations" }

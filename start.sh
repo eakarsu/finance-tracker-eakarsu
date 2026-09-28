@@ -23,7 +23,7 @@ export RUNTIME_AI_SYSTEM_PROMPT='You are a governed portfolio-risk assistant. Re
 node "$PROJECT_DIR/runtime/setup.mjs"
 CHILD_PIDS=()
 (cd "$PROJECT_DIR"&&exec node runtime/api.mjs)&CHILD_PIDS+=("$!")
-(cd "$PROJECT_DIR";unset DATABASE_URL;export PORT="$FRONTEND_PORT" RAILS_ENV=development;exec bundle exec puma -C config/puma.rb)&CHILD_PIDS+=("$!")
+(cd "$PROJECT_DIR";unset DATABASE_URL;export PORT="$FRONTEND_PORT" RAILS_ENV=development;exec bundle exec puma -C config/puma.rb -b "tcp://127.0.0.1:$FRONTEND_PORT")&CHILD_PIDS+=("$!")
 cleanup(){ trap - EXIT INT TERM;for pid in "${CHILD_PIDS[@]}";do kill "$pid" 2>/dev/null||true;done;for pid in "${CHILD_PIDS[@]}";do wait "$pid" 2>/dev/null||true;done; }
 trap cleanup EXIT INT TERM
 wait "${CHILD_PIDS[@]}"
