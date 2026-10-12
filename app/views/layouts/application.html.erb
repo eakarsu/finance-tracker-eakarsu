@@ -30,7 +30,7 @@
   <%= render 'layouts/navigation' %>
 
 
-    <div class="codex-rails-shell"><aside class="codex-rails-sidebar" aria-label="Application navigation"><strong>Finance Tracker</strong><nav aria-label="Sections">
+    <div class="codex-rails-shell"><aside class="codex-rails-sidebar" aria-label="Application navigation"><strong>Finance Tracker</strong><nav aria-label="Sections"><% if ENV['BACKEND_PORT'].to_i > 0 %><a href="http://127.0.0.1:<%= ENV['BACKEND_PORT'].to_i %>/ai-workspace" target="_blank" rel="noopener">AI workspace</a><% end %>
 <%= link_to "Home", root_path %>
 <% if current_user %>
 <%= link_to "My Portfolio", my_portfolio_path %>
